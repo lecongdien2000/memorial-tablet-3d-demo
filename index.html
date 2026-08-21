@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3D Memorial Tablet Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #f4f1eb; }
+    body { font-family: Arial, Helvetica, sans-serif; }
+    #app { width: 100%; height: 100%; position: relative; }
+    canvas { display: block; }
+    .topbar {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      z-index: 10;
+      padding: 12px 15px;
+      border-radius: 12px;
+      background: rgba(255,255,255,.88);
+      box-shadow: 0 8px 28px rgba(0,0,0,.12);
+      backdrop-filter: blur(10px);
+    }
+    .topbar h1 {
+      margin: 0 0 4px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #2a211c;
+    }
+    .topbar p {
+      margin: 0;
+      font-size: 13px;
+      color: #6c625c;
+    }
+    .hint {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 10;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: #fff;
+      background: rgba(35, 29, 25, .78);
+      font-size: 13px;
+      white-space: nowrap;
+      box-shadow: 0 6px 20px rgba(0,0,0,.18);
+    }
+    .badge {
+      position: absolute;
+      right: 18px;
+      top: 18px;
+      z-index: 10;
+      padding: 8px 11px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.88);
+      color: #5c514a;
+      font-size: 12px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.10);
+      backdrop-filter: blur(10px);
+    }
+  </style>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <div class="topbar">
+      <h1>Memorial Tablet — 3D Demo</h1>
+      <p>Client-side only · no backend</p>
+    </div>
+    <div class="badge">Prototype</div>
+    <div class="hint">Drag to rotate · Scroll / pinch to zoom</div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const app = document.getElementById('app');
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf4f1eb);
+
+    const camera = new THREE.PerspectiveCamera(
+      34,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
+    camera.position.set(1.7, 1.2, 2.6);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    app.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.055;
+    controls.enablePan = false;
+    controls.minDistance = 1.6;
+    controls.maxDistance = 5.2;
+    controls.target.set(0, 0.65, 0);
+    controls.autoRotate = false;
+
+    // Lighting
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x6f5c45, 2.0));
+
+    const key = new THREE.DirectionalLight(0xffffff, 3.0);
+    key.position.set(3, 4, 4);
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    scene.add(key);
+
+    const fill = new THREE.DirectionalLight(0xffd8b0, 1.4);
+    fill.position.set(-3, 2, 2);
+    scene.add(fill);
+
+    const rim = new THREE.DirectionalLight(0xffb56b, 1.0);
+    rim.position.set(0, 3, -4);
+    scene.add(rim);
+
+    // Ground
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(3.2, 96),
+      new THREE.MeshStandardMaterial({ color: 0xe9e4dc, roughness: 1.0 })
+    );
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -0.02;
+    ground.receiveShadow = true;
+    scene.add(ground);
+
+    // Materials
+    const wood = new THREE.MeshStandardMaterial({
+      color: 0x9b4a16,
+      roughness: 0.34,
+      metalness: 0.03
+    });
+
+    const woodDark = new THREE.MeshStandardMaterial({
+      color: 0x6d2f0e,
+      roughness: 0.4
+    });
+
+    const woodLight = new THREE.MeshStandardMaterial({
+      color: 0xbd6927,
+      roughness: 0.3
+    });
+
+    const gold = new THREE.MeshStandardMaterial({
+      color: 0xd7a651,
+      roughness: 0.3,
+      metalness: 0.22
+    });
+
+    const tablet = new THREE.Group();
+    tablet.position.y = 0.02;
+    scene.add(tablet);
+
+    function box(w, h, d, material, x=0, y=0, z=0, radius=0) {
+      const geo = new THREE.BoxGeometry(w, h, d, 3, 3, 3);
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    function cyl(r, h, material, x, y, z, sides=32) {
+      const geo = new THREE.CylinderGeometry(r, r, h, sides);
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      return mesh;
+    }
+
+    // Base / pedestal
+    tablet.add(box(0.88, 0.13, 0.42, woodDark, 0, 0.09, 0));
+    tablet.add(box(0.78, 0.11, 0.36, woodLight, 0, 0.20, 0));
+    tablet.add(box(0.68, 0.10, 0.31, wood, 0, 0.30, 0));
+
+    // Decorative base feet
+    for (const x of [-0.31, 0.31]) {
+      tablet.add(cyl(0.09, 0.11, woodLight, x, 0.06, 0.12, 24));
+      tablet.add(cyl(0.07, 0.10, woodLight, x, 0.06, -0.12, 24));
+    }
+
+    // Main vertical body
+    tablet.add(box(0.59, 1.02, 0.20, woodDark, 0, 0.86, 0));
+    tablet.add(box(0.49, 0.92, 0.215, woodLight, 0, 0.86, 0.012));
+
+    // Inset front plaque
+    const plaque = box(0.36, 0.78, 0.025, woodDark, 0, 0.87, 0.124);
+    tablet.add(plaque);
+
+    // Side carved columns
+    for (const x of [-0.315, 0.315]) {
+      tablet.add(cyl(0.065, 0.88, woodLight, x, 0.88, 0, 18));
+
+      // Simple ornamental knots
+      for (const y of [0.55, 0.76, 0.97, 1.18]) {
+        const torus = new THREE.Mesh(
+          new THREE.TorusGeometry(0.085, 0.018, 10, 28, Math.PI * 1.65),
+          woodLight
+        );
+        torus.position.set(x, y, 0.085);
+        torus.rotation.z = x < 0 ? Math.PI / 2 : -Math.PI / 2;
+        torus.castShadow = true;
+        tablet.add(torus);
+      }
+    }
+
+    // Lower frame ornaments
+    tablet.add(box(0.66, 0.075, 0.26, woodLight, 0, 0.38, 0));
+
+    // Top crown from an extruded silhouette
+    const crownShape = new THREE.Shape();
+    crownShape.moveTo(-0.36, 0);
+    crownShape.quadraticCurveTo(-0.28, 0.06, -0.24, 0.13);
+    crownShape.quadraticCurveTo(-0.12, 0.28, 0, 0.18);
+    crownShape.quadraticCurveTo(0.12, 0.28, 0.24, 0.13);
+    crownShape.quadraticCurveTo(0.28, 0.06, 0.36, 0);
+    crownShape.lineTo(0.31, -0.10);
+    crownShape.lineTo(-0.31, -0.10);
+    crownShape.closePath();
+
+    const crownGeo = new THREE.ExtrudeGeometry(crownShape, {
+      depth: 0.20,
+      bevelEnabled: true,
+      bevelThickness: 0.015,
+      bevelSize: 0.015,
+      bevelSegments: 3
+    });
+    crownGeo.center();
+    const crown = new THREE.Mesh(crownGeo, woodLight);
+    crown.position.set(0, 1.49, 0);
+    crown.castShadow = true;
+    crown.receiveShadow = true;
+    tablet.add(crown);
+
+    // Crown medallion
+    const medallion = new THREE.Mesh(
+      new THREE.TorusGeometry(0.10, 0.025, 14, 48),
+      gold
+    );
+    medallion.position.set(0, 1.53, 0.13);
+    medallion.castShadow = true;
+    tablet.add(medallion);
+
+    // Small decorative pearl
+    const pearl = new THREE.Mesh(
+      new THREE.SphereGeometry(0.035, 24, 24),
+      gold
+    );
+    pearl.position.set(0, 1.53, 0.13);
+    pearl.castShadow = true;
+    tablet.add(pearl);
+
+    // Canvas-based inscription texture
+    function makeInscriptionTexture() {
+      const canvas = document.createElement('canvas');
+      canvas.width = 768;
+      canvas.height = 1400;
+      const ctx = canvas.getContext('2d');
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      ctx.fillStyle = '#e7c979';
+      ctx.font = '600 58px Georgia, serif';
+      ctx.fillText('CUNG THỈNH', canvas.width / 2, 100);
+
+      ctx.fillStyle = '#f4dfaa';
+      ctx.font = '700 112px Georgia, serif';
+      const lines = ['CỬU', 'HUYỀN', 'THẤT', 'TỔ'];
+      lines.forEach((line, i) => {
+        ctx.fillText(line, canvas.width / 2, 330 + i * 245);
+      });
+
+      ctx.fillStyle = '#d8b96e';
+      ctx.font = '600 46px Georgia, serif';
+      ctx.fillText('TỌA VỊ', canvas.width / 2, 1290);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      return tex;
+    }
+
+    const textPlane = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.325, 0.74),
+      new THREE.MeshBasicMaterial({
+        map: makeInscriptionTexture(),
+        transparent: true,
+        depthWrite: false
+      })
+    );
+    textPlane.position.set(0, 0.87, 0.139);
+    tablet.add(textPlane);
+
+    // Small carved-look flower motif at bottom front
+    const petals = new THREE.Group();
+    petals.position.set(0, 0.40, 0.155);
+    for (let i = 0; i < 8; i++) {
+      const p = new THREE.Mesh(
+        new THREE.SphereGeometry(0.038, 18, 12),
+        gold
+      );
+      const a = (i / 8) * Math.PI * 2;
+      p.scale.set(1.45, 0.55, 0.40);
+      p.position.set(Math.cos(a) * 0.065, Math.sin(a) * 0.045, 0);
+      p.rotation.z = a;
+      petals.add(p);
+    }
+    tablet.add(petals);
+
+    // Slight initial turn so it reads as 3D immediately
+    tablet.rotation.y = -0.28;
+
+    // Gentle idle motion before user interacts
+    let idle = true;
+    controls.addEventListener('start', () => { idle = false; });
+
+    function animate(t) {
+      requestAnimationFrame(animate);
+      if (idle) {
+        tablet.rotation.y = -0.28 + Math.sin(t * 0.00035) * 0.12;
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+
+    function onResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+    window.addEventListener('resize', onResize);
+  </script>
+</body>
+</html>
